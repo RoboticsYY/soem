@@ -1,7 +1,16 @@
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.5)
 project(soem)
 
-find_package(catkin REQUIRED)
+# # Default to C++14
+# if(NOT CMAKE_CXX_STANDARD)
+#   set(CMAKE_CXX_STANDARD 14)
+# endif()
+
+# if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+#   add_compile_options(-Wall -Wextra -Wpedantic)
+# endif()
+
+find_package(ament_cmake REQUIRED)
 
 message([=[
         
@@ -24,11 +33,11 @@ message([=[
         ]=]
        )
 
-# set-up destination variables
-catkin_destinations()
+# # set-up destination variables
+# catkin_destinations()
 
-# create directory during CMake build system creation step
-file(MAKE_DIRECTORY ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_INCLUDE_DESTINATION})
+# # create directory during CMake build system creation step
+file(MAKE_DIRECTORY ${CMAKE_INSTALL_PREFIX}/include/${PROJECT_NAME})
 
 if(WIN32)
   set(OS "win32")
@@ -44,23 +53,23 @@ file(GLOB SOEM_OSHW_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/SOEM/oshw/${OS}/*.h")
 add_custom_target(CopyHeaders ALL
                   COMMAND ${CMAKE_COMMAND} -E copy_if_different
                           ${SOEM_COMMON_HEADERS}
-                          ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+                          ${CMAKE_INSTALL_PREFIX}
                   COMMAND ${CMAKE_COMMAND} -E copy_if_different
                           ${CMAKE_CURRENT_SOURCE_DIR}/SOEM/osal/osal.h
-                          ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+                          ${CMAKE_INSTALL_PREFIX}
                   COMMAND ${CMAKE_COMMAND} -E copy_if_different
                           ${SOEM_OSAL_HEADERS}
-                          ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+                          ${CMAKE_INSTALL_PREFIX}
                   COMMAND ${CMAKE_COMMAND} -E copy_if_different
                           ${SOEM_OSHW_HEADERS}
-                          ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+                          ${CMAKE_INSTALL_PREFIX}
                   COMMENT "Copying SOEM headers to ROS-standard in devel space location.")
 
 if(WIN32)
   add_custom_target(CopyWpcapHeaders ALL
                   COMMAND ${CMAKE_COMMAND} -E copy_directory
                           ${CMAKE_CURRENT_SOURCE_DIR}/SOEM/oshw/${OS}/wpcap/Include/
-                          ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+                          ${CMAKE_INSTALL_PREFIX}
                   COMMENT "Copying Wpcap headers to ROS-standard in devel space location.")
 endif()
 
@@ -81,10 +90,6 @@ endif()
 
 # export dependencies and targets to catkin
 # explicitely export pthread, as stated above
-catkin_package(
-  CFG_EXTRAS soem-ros-extras.cmake
-  LIBRARIES soem ${PTHREAD_LIB}
-)
 
 # SOEM is, by default, built with position-dependent code as a static library.
 # To be able to include SOEM in a dynamic library (default ROS convention),
@@ -98,3 +103,10 @@ remove_definitions(-DWIN32_LEAN_AND_MEAN)
 #catkin_lint: ignore duplicate_cmd
 #catkin_lint: ignore subproject
 add_subdirectory(SOEM)
+
+ament_export_dependencies(${PTHREAD_LIB})
+ament_export_libraries(${PROJECT_NAME})
+
+ament_package(
+  CONFIG_EXTRAS ${CMAKE_CURRENT_SOURCE_DIR}/cmake/soem-ros-extras.cmake.in
+)
